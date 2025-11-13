@@ -11,15 +11,16 @@ blueprint:
     3. **Export-Management:** Im Eigenverbrauchsmodus (General) wird die **Exportsperre** automatisch aktiviert, wenn der Akku entladen wird, und deaktiviert, wenn der Akku voll ist.
 
     **Voraussetzungen:**
-    * **HACS GoodWe Integration**
-    * **Tibber Daten-Sensor** (manuell in configuration.yaml erstellt, siehe Anleitung)
+    * **HACS GoodWe Integration:** Für die Steuerung von Modus & Exportsperre.
+    * **Tibber Daten-Sensor:** Ein **speziell vorbereiteter Template-Sensor** der die `priceInfo` als Attribut `tibber_data` liefert (siehe Anleitung).
 
   domain: automation
   input:
     tibber_price_data_sensor:
-      name: Tibber Preisdaten Sensor
+      name: Tibber Preisdaten Sensor (Verarbeitet)
       description: >
-        Der Sensor, der die stündlichen Preise als Attribute 'today' und 'tomorrow' enthält.
+        Der vorbereitete Template-Sensor, der die Tibber-Preisdaten als Attribut 'tibber_data' enthält
+        (z.B. sensor.tibber_processed_prices aus der configuration.yaml).
       selector:
         entity:
           domain: sensor
@@ -41,6 +42,7 @@ blueprint:
       name: GoodWe Betriebsmodus Selector
       description: >
         Die Entität zum Umschalten des Modus (z.B. select.goodwe_work_mode).
+        Muss Optionen wie 'General' und 'Backup' haben.
       selector:
         entity:
           domain: select
@@ -108,7 +110,7 @@ trigger:
       - !input goodwe_work_mode_selector
       - !input goodwe_export_limit_switch
       - !input solar_forecast_sensor
-      - !input tibber_price_data_sensor
+      - !input tibber_price_data_sensor # Auch triggern, wenn Tibber-Daten aktualisiert werden
 
 variables:
   # Inputs
@@ -142,16 +144,10 @@ variables:
 
   # Tibber Logic
   current_time: "{{ now() }}"
-  
-  # Hier lag der Fehler: Vereinfachte Logik, um YAML-Parsing-Probleme zu vermeiden
-  tibber_raw_prices: >
-    {% set data = state_attr(v_tibber_sensor, 'home') %}
-    {% if data and data.currentSubscription and data.currentSubscription.priceInfo %}
-      {{ data.currentSubscription.priceInfo }}
-    {% else %}
-      {{ {'today': [], 'tomorrow': []} }}
-    {% endif %}
+  # Abrufen der bereits verarbeiteten Tibber-Daten vom neuen Template-Sensor-Attribut
+  tibber_raw_prices: "{{ state_attr(v_tibber_sensor, 'tibber_data') | default({'today': [], 'tomorrow': []}) }}"
 
+  # Preise kombinieren (Heute + Morgen)
   combined_prices_with_time: >
     {% set prices = [] %}
     {% set today_prices = tibber_raw_prices.today | default([]) %}
