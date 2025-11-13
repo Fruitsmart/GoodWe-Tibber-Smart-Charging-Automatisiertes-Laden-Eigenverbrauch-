@@ -1,5 +1,5 @@
 blueprint:
-  name: GoodWe & Tibber Smart Charge (Final Fix)
+  name: GoodWe & Tibber Smart Charge (v5.0 mit Status-Helfern)
   description: |
     **Intelligente Batteriesteuerung für GoodWe Wechselrichter mit Tibber**
     
@@ -9,6 +9,11 @@ blueprint:
     1. **Günstiges Laden:** Der Akku wird in den **X günstigsten Stunden** des Tages (basierend auf Tibber-Preisen für heute & morgen) aus dem Netz geladen (Modus: Backup).
     2. **Intelligente Zurückhaltung:** Wenn für die günstigen Stunden genug **Solarstrom vorhergesagt** ist (über optionalen Forecast-Sensor) oder aktuell die Sonne scheint, wird das Netzladen übersprungen.
     3. **Export-Management:** Im Eigenverbrauchsmodus (General) wird die **Exportsperre** automatisch aktiviert, wenn der Akku entladen wird, und deaktiviert, wenn der Akku voll ist.
+
+    **Status-Helfer:**
+    Der Blueprint erstellt keine Helfer automatisch, sondern benötigt zwei existierende Helfer, die du in den Home Assistant Einstellungen unter "Geräte & Dienste" > "Helfer" erstellen kannst:
+    * **Text-Helfer (`input_text`)**: Zeigt die Uhrzeiten der günstigsten Ladestunden an.
+    * **Toggle-Helfer (`input_boolean`)**: Zeigt an, ob der Akku aktuell aus dem Netz geladen wird.
 
     **Voraussetzungen:**
     * **HACS GoodWe Integration:** Für die Steuerung von Modus & Exportsperre.
@@ -95,6 +100,23 @@ blueprint:
           min: 1
           max: 100
           unit_of_measurement: "%"
+    # NEUE HELFER INPUTS
+    helper_cheapest_hours_text:
+      name: Text-Helfer Günstige Stunden
+      description: >
+        Ein input_text-Helfer, der die günstigsten Ladestunden anzeigt (z.B. 03:00, 04:00).
+        Du musst diesen Helfer vorher in Home Assistant erstellen (Einstellungen > Geräte & Dienste > Helfer).
+      selector:
+        entity:
+          domain: input_text
+    helper_charging_from_grid_toggle:
+      name: Toggle-Helfer Akku lädt aus Netz
+      description: >
+        Ein input_boolean-Helfer, der anzeigt, ob der Akku gerade aus dem Netz geladen wird.
+        Du musst diesen Helfer vorher in Home Assistant erstellen (Einstellungen > Geräte & Dienste > Helfer).
+      selector:
+        entity:
+          domain: input_boolean
 
 mode: single
 max_exceeded: silent
@@ -120,6 +142,8 @@ variables:
   v_work_mode_selector: !input goodwe_work_mode_selector
   v_export_limit_switch: !input goodwe_export_limit_switch
   v_solar_forecast_sensor: !input solar_forecast_sensor
+  v_helper_cheapest_hours_text: !input helper_cheapest_hours_text
+  v_helper_charging_from_grid_toggle: !input helper_charging_from_grid_toggle
   
   # Settings
   v_charge_hours: "{{ iif(states(v_charge_hours) is defined and states(v_charge_hours) | is_number, states(v_charge_hours) | int, 3) }}"
@@ -144,7 +168,6 @@ variables:
 
   # Tibber Logic
   current_time: "{{ now() }}"
-  # Abrufen der bereits verarbeiteten Tibber-Daten vom neuen Template-Sensor-Attribut
   tibber_raw_prices: "{{ state_attr(v_tibber_sensor, 'tibber_data') | default({'today': [], 'tomorrow': []}) }}"
 
   # Preise kombinieren (Heute + Morgen)
@@ -187,7 +210,22 @@ variables:
     {% endfor %}
     {{ is_cheap }}
 
+  # Formatierte Liste der günstigsten Stunden für den Text-Helfer
+  formatted_cheapest_hours: >
+    {% set hours_list = [] %}
+    {% for hour_info in cheapest_hours_info %}
+      {% set success = hours_list.append(hour_info.time.strftime('%H:%M')) %}
+    {% endfor %}
+    {{ hours_list | join(', ') if hours_list | length > 0 else 'N/A' }}
+
 action:
+  # NEU: Aktualisiere den Text-Helfer mit den günstigsten Stunden
+  - service: input_text.set_value
+    target:
+      entity_id: !input helper_cheapest_hours_text
+    data:
+      value: "{{ formatted_cheapest_hours }}"
+
   - choose:
       # 1. LADEN (Backup-Modus)
       - conditions:
@@ -211,6 +249,10 @@ action:
               - service: switch.turn_off
                 target:
                   entity_id: !input goodwe_export_limit_switch
+          # NEU: Setze den Toggle-Helfer auf EIN, wenn aus dem Netz geladen wird
+          - service: input_boolean.turn_on
+            target:
+              entity_id: !input helper_charging_from_grid_toggle
     
       # 2. NORMALBETRIEB (General-Modus)
       - conditions:
@@ -222,6 +264,10 @@ action:
               entity_id: !input goodwe_work_mode_selector
             data:
               option: "general"
+          # NEU: Setze den Toggle-Helfer auf AUS, wenn nicht aus dem Netz geladen wird
+          - service: input_boolean.turn_off
+            target:
+              entity_id: !input helper_charging_from_grid_toggle
     
   # 3. EXPORTSPERRE STEUERUNG
   - choose: 
