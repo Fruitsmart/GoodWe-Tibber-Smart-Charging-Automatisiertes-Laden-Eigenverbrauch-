@@ -1,8 +1,3 @@
-Absolut\! Eine Changelog ist eine hervorragende Idee, um die Entwicklung und Verbesserungen des Blueprints transparent zu machen.
-
-Hier ist eine detaillierte Changelog für die bisherigen Versionen deines "GoodWe & Tibber Smart Charge (Optimiert)" Blueprints:
-
----
 
 ### **Changelog: GoodWe & Tibber Smart Charge Blueprint**
 
