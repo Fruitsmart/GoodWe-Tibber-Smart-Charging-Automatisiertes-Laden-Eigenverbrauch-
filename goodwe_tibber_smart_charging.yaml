@@ -1,5 +1,5 @@
 blueprint:
-  name: GoodWe & Tibber Smart Charge (v5.5 Final Fix)
+  name: GoodWe & Tibber Smart Charge (v5.6 Final Fix)
   description: |
     **Intelligente Batteriesteuerung für GoodWe Wechselrichter mit Tibber**
     
@@ -88,45 +88,3 @@ blueprint:
       description: Oberhalb dieses Wertes gilt - Viel Überschuss.
       default: 50
       selector:
-        number:
-          min: 0
-          unit_of_measurement: "W"
-    soc_full_threshold:
-      name: Batterie Voll-Schwellenwert (%)
-      description: Ab diesem Ladestand gilt der Akku als voll.
-      default: 99
-      selector:
-        number:
-          min: 1
-          max: 100
-          unit_of_measurement: "%"
-    helper_cheapest_hours_text:
-      name: Text-Helfer Günstige Stunden
-      description: >
-        Ein input_text-Helfer, der die günstigsten Ladestunden anzeigt.
-        Du musst diesen Helfer vorher in Home Assistant erstellen (Einstellungen > Geräte & Dienste > Helfer).
-      selector:
-        entity:
-          domain: input_text
-    helper_charging_from_grid_toggle:
-      name: Toggle-Helfer Akku lädt aus Netz
-      description: >
-        Ein input_boolean-Helfer, der anzeigt, ob der Akku gerade aus dem Netz geladen wird.
-        Du musst diesen Helfer vorher in Home Assistant erstellen (Einstellungen > Geräte & Dienste > Helfer).
-      selector:
-        entity:
-          domain: input_boolean
-
-mode: single
-max_exceeded: silent
-
-trigger:
-  - platform: time_pattern
-    minutes: "*"
-  - platform: state
-    entity_id:
-      - !input pv_power_sensor
-      - !input battery_soc_sensor
-      - !input goodwe_work_mode_selector
-      - !input goodwe_export_limit_switch
-      - !input solar_
