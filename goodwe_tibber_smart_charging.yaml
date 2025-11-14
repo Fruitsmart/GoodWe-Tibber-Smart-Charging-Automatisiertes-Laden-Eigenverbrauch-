@@ -1,5 +1,5 @@
 blueprint:
-  name: GoodWe & Tibber Smart Charge (v5.9 Final Fix)
+  name: GoodWe & Tibber Smart Charge (v5.10 Final Fix)
   description: |
     **Intelligente Batteriesteuerung für GoodWe Wechselrichter mit Tibber**
     
@@ -257,23 +257,4 @@ action:
       - conditions:
           - "{{ aktueller_modus == 'general' }}"
           - "{{ not export_limit_active }}"
-          - "{{ batterie_soc < (input_number(input('soc_full_threshold')) | float(99)) }}" 
-          - "{{ pv_leistung <= (input_number(input('pv_threshold_low')) | float(50)) }}" 
-        sequence:
-          - service: switch.turn_on
-            target:
-              entity_id: !input goodwe_export_limit_switch
-
-      - conditions:
-          - "{{ aktueller_modus == 'general' }}"
-          - "{{ export_limit_active }}"
-          - condition: or
-            conditions:
-              - condition: template 
-                value_template: "{{ batterie_soc >= (input_number(input('soc_full_threshold')) | float(99)) }}" 
-              - condition: template 
-                value_template: "{{ pv_leistung > (input_number(input('pv_threshold_high')) | float(50)) }}" 
-        sequence: 
-          - service: switch.turn_off
-            target:
-              entity_id: !input goodwe_export_limit_switch
+          - "{{ batterie_soc < (input_number(input('soc_full_threshold')) | float(99)) }}"
