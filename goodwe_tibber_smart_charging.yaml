@@ -1,5 +1,5 @@
 blueprint:
-  name: GoodWe & Tibber Smart Charge (v6.0 Final Rewrite)
+  name: GoodWe & Tibber Smart Charge (v6.1 Final Fix - TypeError)
   description: |
     **Intelligente Batteriesteuerung für GoodWe Wechselrichter mit Tibber**
     
@@ -164,8 +164,8 @@ variables:
     {% set tomorrow_prices = tibber_raw_prices.tomorrow | default([]) %}
     
     {% for i in range(24) %}
-      {% set price_time = current_time.replace(hour=i, minute=0, second=0, microsecond=0) %}
-      {% if price_time >= current_time.replace(minute=0, second=0, microsecond=0) %}
+      {% set price_time = current_time.replace(hour=i, minute=0, second=0) %} {# REMOVED microsecond=0 #}
+      {% if price_time >= current_time.replace(minute=0, second=0) %} {# REMOVED microsecond=0 #}
         {% if today_prices is not none and i < today_prices | length and today_prices[i].total is not none %}
           {% set success = prices.append({'time': price_time, 'price': today_prices[i].total}) %}
         {% endif %}
@@ -174,7 +174,7 @@ variables:
 
     {% set next_day = current_time + timedelta(days=1) %}
     {% for i in range(24) %}
-      {% set price_time = next_day.replace(hour=i, minute=0, second=0, microsecond=0) %}
+      {% set price_time = next_day.replace(hour=i, minute=0, second=0) %} {# REMOVED microsecond=0 #}
       {% if tomorrow_prices is not none and i < tomorrow_prices | length and tomorrow_prices[i].total is not none %}
         {% set success = prices.append({'time': price_time, 'price': tomorrow_prices[i].total}) %}
       {% endif %}
@@ -187,7 +187,7 @@ variables:
     {{ sorted_prices[:num_to_select] }}
 
   is_current_hour_cheap: >
-    {% set current_hour_start = current_time.replace(minute=0, second=0, microsecond=0) %}
+    {% set current_hour_start = current_time.replace(minute=0, second=0) %} {# REMOVED microsecond=0 #}
     {% set is_cheap = false %}
     {% for hour_info in cheapest_hours_info %}
       {% if hour_info.time == current_hour_start %}
@@ -252,3 +252,31 @@ action:
             data:
               option: "general"
           - service: input_boolean.turn_off
+            target:
+              entity_id: !input helper_charging_from_grid_toggle
+    
+  # Schritt 3: Steuerung der Exportsperre (unabhängig vom Modus-Wechsel)
+  - choose: 
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ aktueller_modus == 'general' and
+                 not export_limit_active and
+                 batterie_soc < (input_number(input('soc_full_threshold')) | float(99)) and
+                 pv_leistung <= (input_number(input('pv_threshold_low')) | float(50)) }}
+        sequence:
+          - service: switch.turn_on
+            target:
+              entity_id: !input goodwe_export_limit_switch
+
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ aktueller_modus == 'general' and
+                 export_limit_active and
+                 (batterie_soc >= (input_number(input('soc_full_threshold')) | float(99)) or 
+                  pv_leistung > (input_number(input('pv_threshold_high')) | float(50))) }}
+        sequence: 
+          - service: switch.turn_off
+            target:
+              entity_id: !input goodwe_export_limit_switch
