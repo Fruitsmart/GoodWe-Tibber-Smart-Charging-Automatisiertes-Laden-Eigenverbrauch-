@@ -19,7 +19,7 @@ blueprint:
     1.  **Text Helfer für günstigste Stunden:**
         - Typ: Text
         - Name: z.B. `Günstigste Ladestunden`
-        - Entitäts-ID: z.B. `input_text.gunstigsten_ladestunden`
+        - Entitäts-ID: z.b. `input_text.gunstigsten_ladestunden`
     2.  **Boolean Helfer für Ladevorgang aus Netz:**
         - Typ: Umschalter
         - Name: z.B. `Akku lädt aus Netz`
@@ -277,11 +277,11 @@ action:
           - service: input_boolean.turn_off
             target:
               entity_id: "{{ v_helper_charging_from_grid_toggle }}"
-      default:
+      default: # Hier beginnt der Default-Block für den ersten Choose-Block
         - service: input_boolean.turn_off
           target:
             entity_id: "{{ v_helper_charging_from_grid_toggle }}"
-          data: {}
+          # data: {}  <-- Entfernt, da es manchmal zu Parser-Problemen führt und optional ist
     
   # Schritt 3: Steuerung der Exportsperre (unabhängig vom Modus-Wechsel)
   - choose: 
@@ -308,8 +308,8 @@ action:
           - service: switch.turn_off
             target:
               entity_id: "{{ v_export_limit_switch }}"
-      default:
+      default: # Hier beginnt der Default-Block für den zweiten Choose-Block
         - service: switch.turn_off
           target:
             entity_id: "{{ v_export_limit_switch }}"
-          data: {}
+          # data: {}  <-- Entfernt, da es manchmal zu Parser-Problemen führt und optional ist
