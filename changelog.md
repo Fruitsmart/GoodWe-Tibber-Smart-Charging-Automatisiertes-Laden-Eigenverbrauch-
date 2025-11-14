@@ -1,6 +1,24 @@
 
 ### **Changelog: GoodWe & Tibber Smart Charge Blueprint**
 
+
+**Version 5.3 (Aktuell)**
+
+  * **Fehlerbehebung:**
+      * Behebung des `UndefinedError: 'v_charge_hours' is undefined` Fehlers. Die Jinja2-Templates in den `variables` und `conditions` greifen nun **direkt auf die `!input`-Variablen** (z.B. `!input charge_hours`, `!input pv_threshold_low`) zu. Dies eliminiert die Notwendigkeit von Zwischenvariablen und stellt sicher, dass die Werte korrekt abgerufen werden, wenn die Automation erstellt oder aktualisiert wird.
+
+**Version 5.2**
+
+  * **Fehlerbehebung:**
+      * Behebung eines `Message malformed` Fehlers beim Speichern des Blueprints, der durch einen fehlenden `selector`-Block für den `helper_charging_from_grid_toggle` Input verursacht wurde. Der `input_boolean`-Selector wurde korrekt hinzugefügt.
+
+**Version 5.1**
+
+  * **Fehlerbehebung:**
+      * Behebung des `Message malformed: extra keys not allowed @ data['event_type']` Fehlers im `trigger`-Bereich. `platform: homeassistant` wurde in `platform: state` geändert, um korrekt auf Entitätsstatusänderungen zu reagieren.
+
+---
+
 **Version 5.0 (Aktuell)**
 
 * **Neue Funktionen:**
