@@ -2,10 +2,10 @@ blueprint:
   name: GoodWe & Tibber Smart Charge (Variablen-gesteuert)
   description: |
     **Intelligente Batteriesteuerung für GoodWe Wechselrichter mit Tibber**
-    
+
     Diese Automation optimiert deinen GoodWe Batteriespeicher, um Stromkosten zu senken und den Eigenverbrauch zu maximieren.
     Sie berücksichtigt Tibber-Strompreise, PV-Leistung, Batteriestand und optional eine Solarprognose, um den Wechselrichter-Modus und die Exportsperre intelligent zu steuern.
-    
+
     **Voraussetzungen:**
     - GoodWe Integration mit den Entitäten für Betriebsmodus (`select.inverter_operation_mode`) und Exportsperre (`switch.goodwe_grid_export_limit_switch`).
     - Tibber Integration mit einem Preissensor (`sensor.electricity_price_...`) der das Attribut `tibber_data` enthält.
@@ -13,7 +13,7 @@ blueprint:
     - Sensor für den aktuellen Batterieladestand (SOC) (`sensor.battery_state_of_charge`).
     - Optional: Ein Sensor für die Solarprognose (z.B. Home Assistant Solar Forecast).
     - Erforderlich: Zwei Helfer (input_text und input_boolean) wie unten beschrieben.
-    
+
     **Wichtiger Hinweis zur Erstellung der Helfer:**
     Bitte erstelle diese Helfer VOR der Verwendung des Blueprints:
     1.  **Text Helfer für günstigste Stunden:**
@@ -77,7 +77,7 @@ blueprint:
       selector:
         entity:
           domain: input_boolean
-    
+
     # Optional Inputs mit Defaults
     solar_forecast_sensor:
       name: (Optional) Solarprognose-Sensor
@@ -173,7 +173,7 @@ action:
       batterie_soc: "{{ states(v_battery_soc_sensor) | float(100) }}"
       aktueller_modus: "{{ states(v_work_mode_selector) }}"
       export_limit_active: "{{ is_state(v_export_limit_switch, 'on') }}"
-      
+
       solar_forecast_value: >
         {% set forecast_state = states(v_solar_forecast_sensor) %}
         {{ forecast_state | float(0) if forecast_state is not none and forecast_state not in ['unavailable', 'unknown', 'none', 'null', ''] else 0 }}
@@ -189,7 +189,7 @@ action:
         {% set prices = [] %}
         {% set today_prices = tibber_raw_prices.today | default([]) %}
         {% set tomorrow_prices = tibber_raw_prices.tomorrow | default([]) %}
-        
+
         {% for i in range(current_hour_int, 24) %}
           {% if today_prices is not none and i < today_prices | length and today_prices[i].total is not none %}
             {% set price_time = current_dt_now.replace(hour=i, minute=0, second=0, microsecond=0) %}
@@ -262,7 +262,7 @@ action:
           - service: input_boolean.turn_on
             target:
               entity_id: "{{ v_helper_charging_from_grid_toggle }}"
-    
+
       - conditions:
           - condition: template
             value_template: >
@@ -277,14 +277,14 @@ action:
           - service: input_boolean.turn_off
             target:
               entity_id: "{{ v_helper_charging_from_grid_toggle }}"
-      default: # Hier beginnt der Default-Block für den ersten Choose-Block
-        - service: input_boolean.turn_off
-          target:
-            entity_id: "{{ v_helper_charging_from_grid_toggle }}"
-          # data: {}  <-- Entfernt, da es manchmal zu Parser-Problemen führt und optional ist
-    
+    default: # Einrückung 6 Leerzeichen
+      - service: input_boolean.turn_off # Einrückung 8 Leerzeichen
+        target: # Einrückung 10 Leerzeichen
+          entity_id: "{{ v_helper_charging_from_grid_toggle }}"
+        data: {} # Einrückung 10 Leerzeichen
+
   # Schritt 3: Steuerung der Exportsperre (unabhängig vom Modus-Wechsel)
-  - choose: 
+  - choose:
       - conditions:
           - condition: template
             value_template: >
@@ -304,12 +304,12 @@ action:
                  export_limit_active and
                  (batterie_soc >= (soc_full_threshold_input | float(99)) or 
                   pv_leistung > (pv_threshold_high_input | float(50))) }}
-        sequence: 
+        sequence:
           - service: switch.turn_off
             target:
               entity_id: "{{ v_export_limit_switch }}"
-      default: # Hier beginnt der Default-Block für den zweiten Choose-Block
-        - service: switch.turn_off
-          target:
-            entity_id: "{{ v_export_limit_switch }}"
-          # data: {}  <-- Entfernt, da es manchmal zu Parser-Problemen führt und optional ist
+    default: # Einrückung 6 Leerzeichen
+      - service: switch.turn_off # Einrückung 8 Leerzeichen
+        target: # Einrückung 10 Leerzeichen
+          entity_id: "{{ v_export_limit_switch }}"
+        data: {} # Einrückung 10 Leerzeichen
